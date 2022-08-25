@@ -169,6 +169,18 @@ insert_wallarm_status_snippet() {
   sed -i "${line_for_insert}r /tmp/wallarm-status.conf" /etc/nginx/sites-enabled/default
 }
 
+add_wallarm_tarantool_config() {
+  if [ -n "$POSTANALYTIC_ADDRESS" ]; then
+    {
+      printf "upstream wallarm_tarantool {\n"
+      printf "\tserver $POSTANALYTIC_ADDRESS max_fails=0 fail_timeout=0 max_conns=1;\n"
+      printf "\tkeepalive 1;"
+      printf "}\n"
+      printf "wallarm_tarantool_upstream wallarm_tarantool;\n\n"
+    } > /etc/nginx/conf.d/postanalytics.conf
+  fi
+}
+
 configure_services() {
   if [ x"$POSTANALYTIC_ONLY" = x"true" ] \
     || [ x"$POSTANALYTIC_ONLY" = x"True" ] \
@@ -218,7 +230,8 @@ fi
 
 printenv >> /etc/environment
 prepare_dirs
-#configure_services
+add_wallarm_tarantool_config
+configure_services
 register_node
 sync_node
 configure_nginx
